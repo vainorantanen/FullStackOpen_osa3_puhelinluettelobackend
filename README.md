@@ -1,3 +1,3 @@
 "# FullStackOpen_osa3_puhelinluettelobackend" 
 
-Linkki tehtävän 3.10 backendin sovellukseen: https://fso-puhelinluettelo.onrender.com/api/persons
+Linkki tehtävän 3.11 sovellukseen (fullstack): https://fso-puhelinluettelo.onrender.com/
