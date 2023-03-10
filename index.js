@@ -62,109 +62,111 @@ app.get('/api/persons', (request, response) => {
 })
 
 app.get('/info', (req, res) => {
-    Person.find({}).then(persons => {
-      res.send(`<p>Phonebook has info for ${persons.length} people <br></br>${Date()}</p>`)
-    })
-    
+  Person.find({}).then(persons => {
+    res.send(`<p>Phonebook has info for ${persons.length} people <br></br>${Date()}</p>`)
   })
 
-app.get("/api/persons/:id", (req, res, next) => {
-    Person.findById(req.params.id).then(person => {
-      if (person) {
-        res.json(person)
-      } else {
-        response.status(404).end()
-      }
-    })
+})
+
+app.get('/api/persons/:id', (req, res, next) => {
+  Person.findById(req.params.id).then(person => {
+    if (person) {
+      res.json(person)
+    } else {
+      response.status(404).end()
+    }
+  })
     .catch(error => next(error))
 
 })
 
-app.delete("/api/persons/:id", (req, res, next) => {
-    //console.log(req.params)
-    //const id = Number(req.params.id)
-    Person.findByIdAndRemove(req.params.id).then(result => {
-      res.status(204).end()
-    })
+app.delete('/api/persons/:id', (req, res, next) => {
+  //console.log(req.params)
+  //const id = Number(req.params.id)
+  Person.findByIdAndRemove(req.params.id).then(result => {
+    console.log(result)
+    res.status(204).end()
+  })
     .catch(error => next(error))
-    
-})
 
+})
+/*
 const generateId = () => {
-    const maxId = persons.length > 0
-      ? Math.max(...persons.map(n => n.id))
-      : 0
-    return maxId + 1
-  }
+  const maxId = persons.length > 0
+    ? Math.max(...persons.map(n => n.id))
+    : 0
+  return maxId + 1
+}
+*/
 
 app.post('/api/persons', (request, response, next) => {
-    const body = request.body
-    
-    //tarkistetaan onko nimi jo luettelossa
-    let onko = persons.find(p => p.name === body.name)
-    console.log(onko)
+  const body = request.body
 
-    if (!body.name || !body.number) {
-      return response.status(400).json({ 
-        error: 'name or number missing' 
-      })
-    } else if (onko) {
-        return response.status(400).json({ 
-            error: 'name must be unique' 
-          })
-    }
-  
-    const person = new Person({
-      name: body.name,
-      number: body.number
+  //tarkistetaan onko nimi jo luettelossa
+  let onko = persons.find(p => p.name === body.name)
+  console.log(onko)
+
+  if (!body.name || !body.number) {
+    return response.status(400).json({
+      error: 'name or number missing'
     })
-  
-    person.save().then(savedPerson => {
-      response.json(savedPerson)
+  } else if (onko) {
+    return response.status(400).json({
+      error: 'name must be unique'
+    })
+  }
+
+  const person = new Person({
+    name: body.name,
+    number: body.number
+  })
+
+  person.save().then(savedPerson => {
+    response.json(savedPerson)
+  })
+    .catch(error => next(error))
+})
+
+app.put('/api/persons/:id', (request, response, next) => {
+  const body = request.body
+
+  const person = {
+    name: body.name,
+    number: body.number
+  }
+
+  Person.findByIdAndUpdate(request.params.id, person, { new: true, runValidators: true, context: 'query' })
+    .then(updatedPerson => {
+      response.json(updatedPerson)
     })
     .catch(error => next(error))
-  })
 
-  app.put('/api/persons/:id', (request, response, next) => {
-    const body = request.body
+})
 
-    const person = {
-      name: body.name,
-      number: body.number
-    }
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: 'unknown endpoint' })
+}
 
-    Person.findByIdAndUpdate(request.params.id, person, {new: true, runValidators: true, context: 'query'})
-      .then(updatedPerson => {
-        response.json(updatedPerson)
-      })
-      .catch(error => next(error))
+// olemattomien osoitteiden käsittely
+app.use(unknownEndpoint)
 
-  })
 
-  const unknownEndpoint = (request, response) => {
-    response.status(404).send({ error: 'unknown endpoint' })
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
   }
-  
-  // olemattomien osoitteiden käsittely
-  app.use(unknownEndpoint)
-  
 
-  const errorHandler = (error, request, response, next) => {
-    console.error(error.message)
-  
-    if (error.name === 'CastError') {
-      return response.status(400).send({ error: 'malformatted id' })
-    } else if (error.name === 'ValidationError') {
-      return response.status(400).json({ error: error.message })
-    }
-  
-    next(error)
-  }
-  
-  // tämä tulee kaikkien muiden middlewarejen rekisteröinnin jälkeen!
-  app.use(errorHandler)
+  next(error)
+}
 
-  const PORT = process.env.PORT
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`)
-  })
+// tämä tulee kaikkien muiden middlewarejen rekisteröinnin jälkeen!
+app.use(errorHandler)
+
+const PORT = process.env.PORT
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`)
+})
